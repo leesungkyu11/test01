@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/jee
+        http://www.springframework.org/schema/jee/spring-jee.xsd">
+  
+  <!-- 페이지 컨트롤러 객체는 프론트 컨트롤러가 관리하기 때문에 제외한다. 
+       즉 @Controller 애노테이션이 붙은 것은 제외하자!
+       @Controller?
+       스프링에서 페이지 컨트롤러와 DAO와 서비스 객체를 구분하기 위해 정의한 애노테이션이다.-->
+  <context:component-scan base-package="bitcamp.java77">
+    <!-- java76.pms.controller 패키지의 모든 클래스를 제외한다. -->
+    <context:exclude-filter type="regex" 
+                            expression="bitcamp.java77.controller.*"/>
+  </context:component-scan>
+    
+  <bean id="sqlSessionFactory" 
+        class="org.mybatis.spring.SqlSessionFactoryBean">
+    <property name="dataSource" ref="dataSource" />
+    <property name="mapperLocations" 
+              value="classpath*:bitcamp/java77/dao/*Dao.xml" />
+    <property name="typeAliasesPackage" 
+              value="bitcamp.java77.domain" />          
+  </bean>
+    
+	<!--  
+  <jee:jndi-lookup id="dataSource" 
+        jndi-name="java:comp/env/jdbc/java77db"/>
+   -->
+          
+  <bean id="dataSource" 
+        class="org.apache.commons.dbcp.BasicDataSource" 
+        destroy-method="close">
+    <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+    <property name="url" value="jdbc:mysql://localhost:3306/java77db"/>
+    <property name="username" value="java77"/>
+    <property name="password" value="1111"/>
+  </bean>
+  
+  
+  <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+  	<!-- DAO 인터페이스가 선언된 패키지 지정한다.-->
+  	<property name="basePackage" value="bitcamp.java77.dao" />
+  </bean>
+  
+  <!-- 트랜잭션 관리 객체 등록 -->
+  <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    <property name="dataSource" ref="dataSource"/>
+  </bean>
+  
+  <!-- @Transactional 애노테이션을 처리할 객체 등록 -->
+  <tx:annotation-driven transaction-manager="txManager"/>
+  
+  <!-- 어떤 조건의 메서드에 대해 트랜잭션을 적용할 지 설정한다. -->
+  <tx:advice id="txAdvice" transaction-manager="txManager">
+    <tx:attributes>
+      <tx:method name="get*" read-only="true"/>
+      <tx:method name="retrieve*" read-only="true"/>
+      <tx:method name="*"/> <!-- 그 밖의 모든 메서드에 대해 트랜잭션 적용하라! -->
+    </tx:attributes>
+  </tx:advice>
+  
+  <!-- 위에서 정의한 트랜잭션 advice를 어떤 지점(pointcut)에 연결할지 설정한다. -->
+  <aop:config>
+    <aop:pointcut id="serviceOperation" 
+         expression="execution(* *..service..*(..))"/>
+    <aop:advisor advice-ref="txAdvice" pointcut-ref="serviceOperation"/>
+  </aop:config>
+  
+  <!-- AOP 애노테이션 처리자 등록 -->
+  <aop:aspectj-autoproxy/>
+</beans>
+
+
+
+
+

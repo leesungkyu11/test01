@@ -1,0 +1,1 @@
+var contextRoot = 'http://localhost:8008/g2';
